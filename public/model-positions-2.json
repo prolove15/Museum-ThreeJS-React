@@ -1,0 +1,54 @@
+{
+  "models2": [
+    {
+      "id": 1,
+      "name": "",
+      "position": [
+        -10,
+        0,
+        0
+      ],
+      "opendedPos": [
+        3,
+        4
+      ]
+    },
+    {
+      "id": 2,
+      "name": "",
+      "position": [
+        10,
+        0,
+        0
+      ],
+      "opendPos": [
+        3
+      ]
+    },
+    {
+      "id": 3,
+      "name": "",
+      "position": [
+        -20,
+        0,
+        20
+      ],
+      "opendPos": [
+        6
+      ]
+    },
+    {
+      "id": 4,
+      "name": "",
+      "position": [
+        0,
+        0,
+        20
+      ],
+      "opendPos": [
+        1,
+        5
+      ]
+    }
+  ]
+}

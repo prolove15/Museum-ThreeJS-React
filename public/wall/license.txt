@@ -1,0 +1,11 @@
+Model Information:
+* title:	Tileable Subway Wall
+* source:	https://sketchfab.com/3d-models/tileable-subway-wall-378849b0e72147c3b9267cf39dd25046
+* author:	dpgb feat. Tom Trottel (https://sketchfab.com/dasparadoxon)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Tileable Subway Wall" (https://sketchfab.com/3d-models/tileable-subway-wall-378849b0e72147c3b9267cf39dd25046) by dpgb feat. Tom Trottel (https://sketchfab.com/dasparadoxon) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
