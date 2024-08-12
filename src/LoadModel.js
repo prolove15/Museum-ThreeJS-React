@@ -5,6 +5,7 @@ import * as CANNON from 'cannon-es';
 
 export const LoadModel = ( scene ) => {
   let wallModel = null;
+  let wallInsts = [];
   let floorModel = null;
   const regionId = 1;
 
@@ -21,6 +22,7 @@ export const LoadModel = ( scene ) => {
         let wallInst = wallModel.clone();
         adjustWallInstance( wallInst, i, modelData.position, getLengthXOfModel( wallModel ) );
         scene.add( wallInst );
+        wallInsts.push( wallInst );
       }
     }
   };
@@ -116,11 +118,7 @@ export const LoadModel = ( scene ) => {
       } );
   };
 
-  const getValue = () => {
-    return 'abc';
-  };
-
   preloadModels();
 
-  return null; // No DOM representation needed
+  return wallInsts; // No DOM representation needed
 };

@@ -6,30 +6,49 @@ import * as THREE from 'three';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { EffectComposer, TessellateModifier, UnrealBloomPass } from 'three/examples/jsm/Addons.js';
 import { RenderPass } from 'three/examples/jsm/Addons.js';
+import * as CANNON from 'cannon-es';
+import Stats from 'three/examples/jsm/libs/stats.module.js';
+import { OrbitControls } from 'three/examples/jsm/Addons.js';
 
 const ThreeScene = () => {
   const mountRef = useRef( null );
   const cameraRef = useRef( null );
   const sceneRef = useRef( null );
+  let scene = null;
   let camera = null;
+  let customInputControlAllow = false;
+  let isInited = false;
+  let wallInsts = null;
 
   useEffect( () => {
     // initialize
     const mount = mountRef.current;
 
-    // Set up the scene
-    const scene = new THREE.Scene();
-    sceneRef.current = scene;
-
-    // Set up the camera
-    camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 1000 );
-    camera.position.set( 0, 1, 0 );
-    cameraRef.current = camera;
-
     // Set up the renderer
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.shadowMap.enabled = true;
     mount.appendChild( renderer.domElement );
+
+    // Set up the scene
+    const setupScene = () => {
+      scene = new THREE.Scene();
+      scene.add( new THREE.AxesHelper( 5 ) );
+      sceneRef.current = scene;
+    };
+    setupScene();
+
+    // Set up the camera
+    let controls = null;
+    const setupCamera = () => {
+      camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 100 );
+      controls = new OrbitControls( camera, renderer.domElement );
+      controls.enableDamping = true;
+      controls.target.y = 0.5;
+      camera.position.set( 0, 2, 2 );
+      cameraRef.current = camera;
+    };
+    setupCamera();
 
     // Set up skybox
     // const skyboxLoader = new THREE.CubeTextureLoader();
@@ -42,30 +61,6 @@ const ThreeScene = () => {
     //   '/skybox/6.jpg'  // front
     // ] );
     // scene.background = skyboxTexture;
-
-    // const loader = new RGBELoader();
-    // loader.load( '/skybox/sky.hdr', function ( hdrMap ) {
-    //   // Create a PMREM texture from the HDR map for better lighting
-    //   const pmremGenerator = new THREE.PMREMGenerator( renderer );
-    //   const envMap = pmremGenerator.fromEquirectangular( hdrMap ).texture;
-    //   scene.background = envMap;
-    //   scene.environment = envMap;
-
-    //   pmremGenerator.dispose(); // Clean up
-    // } );
-
-    // // Set up light
-    // const directionalLight = new THREE.DirectionalLight( 0xffffff, 1 ); // Color and intensity
-    // directionalLight.position.set( 5, 10, 7 ); // Set position of the light
-    // directionalLight.castShadow = true;
-    // scene.add( directionalLight );
-
-    // const ambientLight = new THREE.AmbientLight( 0xffffff, 0.1 ); // White light with intensity 0.5
-    // scene.add( ambientLight );
-
-    // const pointLight = new THREE.PointLight( 0xffffff, 1, 0.1 ); // White light with intensity 1
-    // pointLight.position.set( 10, 10, 10 ); // Position the light in the scene
-    // scene.add( pointLight );
 
     // Step 2: Create the background;
     // scene.background = new THREE.Color( 0xaaaaaa ); // Light grey for contrast
@@ -82,70 +77,148 @@ const ThreeScene = () => {
     // wall.position.set( 0, 0, -5 ); // Position it in front of the camera
     // scene.add( wall );
 
-    // Step 4: Add ambient light
-    const ambientLight = new THREE.AmbientLight( 0xffffff, 0.3 ); // Dim ambient light
-    scene.add( ambientLight );
-
-    // // Step 5: Add point lights for room-like effect
-    // // Light positioned above the center of the room
-    // const pointLight = new THREE.PointLight( 0xffffff, 1, 50 );
-    // pointLight.position.set( 0, 10, 0 ); // Position it above the scene
-    // scene.add( pointLight );
-
-    // // Optional: Add a soft color to simulate warm light
-    // const pointLight2 = new THREE.PointLight( 0xffcc99, 0.5, 30 );
-    // pointLight2.position.set( -5, 5, -5 ); // Another light for variation
-    // scene.add( pointLight2 );
-
     // Add a light
-    // const light = new THREE.PointLight( 0xffffff, 1, 100 );
-    // light.position.set( 10, 10, 10 );
-    // scene.add( light );
+    const setupLight = () => {
+      // const ambientLight = new THREE.AmbientLight( 0xffffff, 0.3 ); // Dim ambient light
+      // scene.add( ambientLight );
+      const light1 = new THREE.SpotLight( 0xffffff, 20 );
+      light1.position.set( 2.5, 5, 5 );
+      light1.angle = Math.PI / 4;
+      light1.penumbra = 0.5;
+      light1.castShadow = true;
+      light1.shadow.mapSize.width = 1024;
+      light1.shadow.mapSize.height = 1024;
+      light1.shadow.camera.near = 0.5;
+      light1.shadow.camera.far = 20;
+      scene.add( light1 );
+    };
+    setupLight();
 
-    // Add a mesh to affect with bloom
-    const geometry = new THREE.SphereGeometry( 1, 32, 32 );
-    const material = new THREE.MeshBasicMaterial( { color: 0xfeffe1 } );
-    const sphere = new THREE.Mesh( geometry, material );
-    scene.add( sphere );
-
-    camera.position.z = 5;
-
-    // Setup EffectComposer
+    // Set up EffectComposer
     const composer = new EffectComposer( renderer );
+    const setupEffectComposer = () => {
+      //
+      const renderPass = new RenderPass( scene, camera );
+      composer.addPass( renderPass );
 
-    // RenderPass
-    const renderPass = new RenderPass( scene, camera );
-    composer.addPass( renderPass );
+      const bloomPass = new UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
+      composer.addPass( bloomPass );
 
-    // UnrealBloomPass
-    const bloomPass = new UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
-    composer.addPass( bloomPass );
+      bloomPass.threshold = 0; // Adjust threshold for bloom effect
+      bloomPass.strength = 1.5;  // Intensity of the bloom
+      bloomPass.radius = 0.5;    // Radius of the bloom
 
-    // Adjust bloom parameters if required
-    bloomPass.threshold = 0; // Adjust threshold for bloom effect
-    bloomPass.strength = 1.5;  // Intensity of the bloom
-    bloomPass.radius = 0.5;    // Radius of the bloom
+      // Add a mesh to affect with bloom
+      const geometry = new THREE.SphereGeometry( 1, 32, 32 );
+      const material = new THREE.MeshBasicMaterial( { color: 0xfeffe1 } );
+      const sphere = new THREE.Mesh( geometry, material );
+      scene.add( sphere );
+    };
+    setupEffectComposer();
+
+    // Set up physics
+    const clock = new THREE.Clock();
+    let delta;
+    let world = null;
+    let cubeMesh = null, cubeBody = null;
+    const setupPhysics = () => {
+      world = new CANNON.World();
+      world.gravity.set( 0, -9.82, 0 );
+      // world.broadphase = new CANNON.NaiveBroadphase()
+      // ;(world.solver as CANNON.GSSolver).iterations = 10
+      // world.allowSleep = true
+
+      const normalMaterial = new THREE.MeshNormalMaterial();
+      const phongMaterial = new THREE.MeshPhongMaterial();
+
+      const cubeGeometry = new THREE.BoxGeometry( 1, 1, 1 );
+      cubeMesh = new THREE.Mesh( cubeGeometry, normalMaterial );
+      cubeMesh.position.set( 0, 1, -1 );
+      cubeMesh.castShadow = true;
+      scene.add( cubeMesh );
+      const cubeShape = new CANNON.Box( new CANNON.Vec3( 0.5, 0.5, 0.5 ) );
+      cubeBody = new CANNON.Body( { mass: 1 } );
+      cubeBody.addShape( cubeShape );
+      cubeBody.position.x = cubeMesh.position.x;
+      cubeBody.position.y = cubeMesh.position.y;
+      cubeBody.position.z = cubeMesh.position.z;
+      world.addBody( cubeBody );
+    };
+    setupPhysics();
+
+    //
+    const createSphere = () => {
+      // const geometry = new THREE.BoxGeometry( 1, 1, 1, 1, 1, 1 );
+      // const material = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+      // cameraSphere = new THREE.Mesh( geometry, material );
+      // cameraSphere.position.set( 0, 0, -1 );
+      // scene.add( cameraSphere );
+      // camera.add( cameraSphere );
+      // console.log( 'camera = ', camera );
+
+      //
+      // const geometry2 = new THREE.BufferGeometry();
+
+      // const vertices = new Float32Array( [
+      //   -1.0, -1.0, 1.0, // v0
+      //   1.0, -1.0, 1.0, // v1
+      //   1.0, 1.0, 1.0, // v2
+      //   -1.0, 1.0, 1.0, // v3
+      // ] );
+
+      // const indices = [
+      //   0, 1, 2,
+      //   2, 3, 0,
+      // ];
+
+      // geometry2.setIndex( indices );
+      // geometry2.setAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
+
+      // const material2 = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
+      // const mesh = new THREE.Mesh( geometry2, material2 );
+      // console.log( 'mesh = ', mesh );
+      // scene.add( mesh );
+    };
+    createSphere();
 
     // Load model
-    LoadModel( scene );
+    wallInsts = LoadModel( scene );
+
+    const handleUserInputOnPC = () => {
+      if ( !customInputControlAllow ) {
+        return;
+      }
+
+      // Handle key
+      window.addEventListener( 'keydown', handleKey );
+
+      // Handle mouse control
+      window.addEventListener( 'mousedown', handleMouseDown );
+      window.addEventListener( 'mousemove', handleMouseMove );
+      window.addEventListener( 'mouseup', handleMouseUp );
+
+      // Handle mouse wheel
+      window.addEventListener( 'wheel', handleMouseWheel );
+    };
+    handleUserInputOnPC();
 
     // Animation loop
     const animate = () => {
       requestAnimationFrame( animate );
+
       composer.render();
+
+      controls.update();
+
+      //delta = clock.getDelta()
+      delta = Math.min( clock.getDelta(), 0.1 );
+      // world.step( delta );
+
+      // Copy coordinates from Cannon to Three.js
+      cubeMesh.position.set( cubeBody.position.x, cubeBody.position.y, cubeBody.position.z );
+      cubeMesh.quaternion.set( cubeBody.quaternion.x, cubeBody.quaternion.y, cubeBody.quaternion.z, cubeBody.quaternion.w );
     };
     animate();
-
-    // Handle key
-    window.addEventListener( 'keydown', handleKey );
-
-    // Handle mouse control
-    window.addEventListener( 'mousedown', handleMouseDown );
-    window.addEventListener( 'mousemove', handleMouseMove );
-    window.addEventListener( 'mouseup', handleMouseUp );
-
-    // Handle mouse wheel
-    window.addEventListener( 'wheel', handleMouseWheel );
 
     // handle resize window
     const handleResizeWindow = () => {
@@ -158,12 +231,18 @@ const ThreeScene = () => {
 
     return () => {
       mountRef.current.removeChild( renderer.domElement );
-      window.removeEventListener( 'keydown', handleKey );
-      window.removeEventListener( 'mousedown', handleMouseDown );
-      window.removeEventListener( 'mousemove', handleMouseMove );
-      window.removeEventListener( 'mouseup', handleMouseUp );
-      window.removeEventListener( 'wheel', handleMouseWheel );
+
+      if ( customInputControlAllow ) {
+        window.removeEventListener( 'keydown', handleKey );
+        window.removeEventListener( 'mousedown', handleMouseDown );
+        window.removeEventListener( 'mousemove', handleMouseMove );
+        window.removeEventListener( 'mouseup', handleMouseUp );
+        window.removeEventListener( 'wheel', handleMouseWheel );
+      }
+
       window.removeEventListener( 'resize', handleResizeWindow );
+
+      isInited = true;
     };
   }, [] );
 
@@ -260,7 +339,9 @@ const ThreeScene = () => {
 
     if ( elapsed >= interval ) {
       lastTime = timestamp - ( elapsed % interval ); // Adjust for overrun
-      update( elapsed );
+      if ( isInited ) {
+        update( elapsed );
+      }
     }
 
     requestAnimationFrame( gameLoop );
@@ -269,6 +350,7 @@ const ThreeScene = () => {
   requestAnimationFrame( gameLoop );
 
   return <div ref={mountRef} style={{ width: '100%', height: '100vh' }} />;
+
 };
 
 export default ThreeScene;
