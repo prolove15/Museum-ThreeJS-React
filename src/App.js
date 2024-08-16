@@ -1,6 +1,6 @@
 import './App.css';
 import React from 'react';
-import ThreeScene from './ThreeScene';
+import ThreeScene from './custom/ThreeScene';
 
 function App () {
   return (
