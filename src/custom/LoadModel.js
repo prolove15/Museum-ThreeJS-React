@@ -31,6 +31,7 @@ export const LoadModel = async ( scene ) => {
     wallInst.position.set( pivotPos[ 0 ], pivotPos[ 1 ], pivotPos[ 2 ] );
     wallInst.rotateY( Math.PI / 6 + Math.PI / 3 * index );
     wallInst.translateZ( -lengthX * Math.sqrt( 3 ) / 2 );
+    console.log( 'lengthX = ', lengthX );
   };
 
   //-------------------------------------------------- Place room instances
@@ -100,7 +101,7 @@ export const LoadModel = async ( scene ) => {
     wallModel = adjustPivot( obj1 );
 
     // Load positions after the model is ready
-    const resp = await fetch( `/model-positions-${ regionId }.json` );
+    const resp = await fetch( `/json/model-positions-${ regionId }.json` );
     const models = await resp.json();
 
     models.models.forEach( ( modelData ) => {
@@ -108,20 +109,20 @@ export const LoadModel = async ( scene ) => {
     } );
 
     // Load the floor model
-    const floorModel = await loader_obj.loadAsync( '/models/wall/wall.obj' );
-    const floor = adjustPivot( floorModel );
-    floor.scale.set( 10, 10, 1 );
-    floor.rotateOnWorldAxis( new THREE.Vector3( 1, 0, 0 ), -Math.PI / 2 );
-    floor.position.set( 0, -1, 0 );
-    scene.add( floor );
+    // const floorModel = await loader_obj.loadAsync( '/models/wall/wall.obj' );
+    // const floor = adjustPivot( floorModel );
+    // floor.scale.set( 10, 10, 1 );
+    // floor.rotateOnWorldAxis( new THREE.Vector3( 1, 0, 0 ), -Math.PI / 2 );
+    // floor.position.set( 0, -1, 0 );
+    // scene.add( floor );
 
     // Load the roof model
-    const roofModel = await loader_obj.loadAsync( '/models/wall/wall.obj' );
-    const roof = adjustPivot( roofModel );
-    roof.scale.set( 10, 10, 1 );
-    roof.rotateOnWorldAxis( new THREE.Vector3( 1, 0, 0 ), -Math.PI / 2 );
-    roof.position.set( 0, 1, 0 );
-    scene.add( roof );
+    // const roofModel = await loader_obj.loadAsync( '/models/wall/wall.obj' );
+    // const roof = adjustPivot( roofModel );
+    // roof.scale.set( 10, 10, 1 );
+    // roof.rotateOnWorldAxis( new THREE.Vector3( 1, 0, 0 ), -Math.PI / 2 );
+    // roof.position.set( 0, 1, 0 );
+    // scene.add( roof );
   };
 
   await preloadModels();
